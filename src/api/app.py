@@ -4,6 +4,7 @@ import logfire
 from fastapi import FastAPI
 
 from src.api.routers import health_router, query_router
+from src.services.guardrails import Guardrails
 from src.services.retrieval.embeddings import GeminiEmbedder
 from src.services.retrieval.reranking import CrossEncoderReranker
 from src.services.retrieval.retriever import Retriever
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
         store=QdrantStore(),
         reranker=CrossEncoderReranker(),
     )
+    app.state.guardrails = Guardrails()
     yield
 
 

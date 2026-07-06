@@ -1,0 +1,23 @@
+models:
+  - type: main
+    engine: openai
+    model: gpt-3.5-turbo
+
+instructions:
+  - type: general
+    content: |
+      You are an Enterprise IT Assistant specialising in:
+      - Kubernetes (deployment, scaling, operators, networking)
+      - Intel hardware (CPUs, FPGAs, NICs, SRIOV)
+      - Enterprise networking (SDN, VLANs, BGP, routing)
+      Only answer questions about these topics. Be professional and concise.
+
+rails:
+  input:
+    flows:
+      - self check input
+  dialog:
+    user_messages:
+      embeddings_only: True
+      embeddings_only_similarity_threshold: 0.6
+      embeddings_only_fallback_intent: proceed to retrieval
