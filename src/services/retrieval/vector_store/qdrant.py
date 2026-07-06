@@ -3,9 +3,15 @@ import uuid
 import logfire
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
+from tenacity import (
+    before_sleep_log,
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from src.config import settings
-from src.models import EmbeddedChunk
+from src.models import EmbeddedChunk, RetrievedChunk
 
 
 class QdrantStore:
@@ -47,6 +53,12 @@ class QdrantStore:
         self._client.delete_collection(collection_name=self._collection)
         logfire.info(f"Deleted Qdrant collection '{self._collection}'")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+        before_sleep=before_sleep_log(logfire, "warning"),
+    )
     def upsert(self, chunks: list[EmbeddedChunk]) -> None:
         with logfire.span("Qdrant Upsert", count=len(chunks)):
             if not chunks:
@@ -64,3 +76,30 @@ class QdrantStore:
 
             self._client.upsert(collection_name=self._collection, points=points)
             logfire.info(f"Upserted {len(points)} points into '{self._collection}'")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+        before_sleep=before_sleep_log(logfire, "warning"),
+    )
+    def search(self, vector: list[float], limit: int = 5) -> list[RetrievedChunk]:
+        with logfire.span("Qdrant Search", limit=limit):
+            response = self._client.query_points(
+                collection_name=self._collection,
+                query=vector,
+                limit=limit,
+                with_payload=True,
+            )
+
+            results = [
+                RetrievedChunk(
+                    text=point.payload["text"],
+                    source=point.payload["source"],
+                    score=point.score,
+                )
+                for point in response.points
+            ]
+
+            logfire.info(f"Retrieved {len(results)} chunks from '{self._collection}'")
+            return results
