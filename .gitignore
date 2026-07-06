@@ -11,3 +11,6 @@ wheels/
 
 # Chroma
 chroma_langchain_db/
+
+# Environment variables
+.env
