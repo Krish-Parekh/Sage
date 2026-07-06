@@ -1,6 +1,6 @@
 import liteparse
 
-from src.ingestion.loaders.base import LoggingLoader
+from src.services.ingestion.loaders.base import LoggingLoader
 
 
 class PDFLoader(LoggingLoader):

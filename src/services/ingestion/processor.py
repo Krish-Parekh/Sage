@@ -2,7 +2,7 @@ from pathlib import Path
 
 import logfire
 
-from src.ingestion.loaders import DEFAULT_LOADERS, Loader
+from src.services.ingestion.loaders import DEFAULT_LOADERS, Loader
 
 
 class DocumentProcessor:

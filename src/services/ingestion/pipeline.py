@@ -2,8 +2,8 @@ import time
 
 import logfire
 
-from src.ingestion.chuncking import Chunker
-from src.ingestion.processor import DocumentProcessor
+from src.services.ingestion.chunking import Chunker
+from src.services.ingestion.processor import DocumentProcessor
 from src.models import EmbeddedChunk
 from src.services.retrieval.embeddings import Embedder
 from src.services.retrieval.vector_store import VectorStore
