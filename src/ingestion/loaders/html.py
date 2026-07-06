@@ -1,26 +1,23 @@
-import logfire
 from bs4 import BeautifulSoup
 
-def parse_html(file_path: str) -> str:
+from src.ingestion.loaders.base import LoggingLoader
 
-    with logfire.span("HTML Parsing", filename=file_path):
-        try:
-            with open(file_path, "r") as file:
-                html = file.read()
-            
-            soup = BeautifulSoup(html, "html.parser")
 
-            for script in soup(["script", "style", "meta", "noscript"]):
-                script.decompose()
+class HTMLLoader(LoggingLoader):
+    name = "HTML"
+    extensions = (".html", ".htm")
 
-            text = soup.get_text(separator="\n", strip=True)
+    def _extract(self, file_path: str) -> str:
+        with open(file_path, "r") as file:
+            html = file.read()
 
-            lines = (line.strip() for line in text.splitlines() if line.strip())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            text = "\n".join(chunk for chunk in chunks if chunk)
+        soup = BeautifulSoup(html, "html.parser")
 
-            return text
+        for script in soup(["script", "style", "meta", "noscript"]):
+            script.decompose()
 
-        except Exception as e:
-            logfire.error(f"Error parsing HTML: {e}")
-            raise e
+        text = soup.get_text(separator="\n", strip=True)
+
+        lines = (line.strip() for line in text.splitlines() if line.strip())
+        chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+        return "\n".join(chunk for chunk in chunks if chunk)
