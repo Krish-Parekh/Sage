@@ -15,3 +15,6 @@ chroma_langchain_db/
 # Environment variables
 .env
 CLAUDE.md
+docs/
+
+langfuse/

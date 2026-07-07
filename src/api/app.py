@@ -4,13 +4,14 @@ import logfire
 from fastapi import FastAPI
 
 from src.api.routers import health_router, query_router
+from src.observability import Observability
 from src.services.guardrails import Guardrails
 from src.services.retrieval.embeddings import GeminiEmbedder
 from src.services.retrieval.reranking import CrossEncoderReranker
 from src.services.retrieval.retriever import Retriever
 from src.services.retrieval.vector_store import QdrantStore
 
-logfire.configure(send_to_logfire=False, console=logfire.ConsoleOptions())
+Observability.configure()
 
 
 @asynccontextmanager

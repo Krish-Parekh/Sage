@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import logfire
-from langchain_openai import ChatOpenAI
 from nemoguardrails import LLMRails, RailsConfig
 
 from src.config import settings
+from src.services.llm import guard_chat_model
 
 _CONFIG_PATH = Path(__file__).parent / "config"
 _OPTIONS = {"output_vars": ["triggered_input_rail"]}
@@ -12,7 +12,7 @@ _OPTIONS = {"output_vars": ["triggered_input_rail"]}
 
 class Guardrails:
     def __init__(self) -> None:
-        guard_llm = ChatOpenAI(api_key=settings.OPENAI_API_KEY, model="gpt-4o-mini")
+        guard_llm = guard_chat_model(settings.PORTKEY_GUARDRAILS_MODEL)
         config = RailsConfig.from_path(str(_CONFIG_PATH))
         self._rails = LLMRails(config, llm=guard_llm)
         logfire.info("NeMo Guardrails initialised")
