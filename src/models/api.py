@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class QueryRequest(BaseModel):
     query: str
+    thread_id: str = "default"
 
 
 class Chunk(BaseModel):
@@ -12,4 +13,5 @@ class Chunk(BaseModel):
 
 
 class QueryResponse(BaseModel):
-    results: list[Chunk]
+    answer: str
+    results: list[Chunk] = []
