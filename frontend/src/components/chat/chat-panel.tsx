@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { nanoid } from "nanoid";
 
 import { AIInput } from "@/components/ui/ai-input";
 import { usePost } from "@/lib/api/hooks/mutation";
@@ -9,11 +10,10 @@ import type { ChatMessage } from "@/types/chat";
 
 import { MessageList } from "./message-list";
 
-const THREAD_ID = "default";
-
 export function ChatPanel() {
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const idCounter = useRef(0);
+	const threadIdRef = useRef(nanoid());
 	const { mutate, isPending } = usePost<QueryResponse, QueryRequest>("/query");
 
 	const nextId = () => {
@@ -44,7 +44,7 @@ export function ChatPanel() {
 		setMessages((prev) => [...prev, userMessage, pendingMessage]);
 
 		mutate(
-			{ query: text, thread_id: THREAD_ID },
+			{ query: text, thread_id: threadIdRef.current },
 			{
 				onSuccess: (data) => {
 					updateMessage(assistantId, {
