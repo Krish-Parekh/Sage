@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     PORTKEY_BASE_URL: str = os.getenv("PORTKEY_BASE_URL")
     PORTKEY_GUARDRAILS_MODEL: str = os.getenv("PORTKEY_GUARDRAILS_MODEL")
 
+    DATABASE_URL: str = os.getenv("DATABASE_URL")
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
