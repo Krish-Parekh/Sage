@@ -2,6 +2,12 @@ from dataclasses import dataclass
 
 
 @dataclass
+class AuthUser:
+    id: str
+    username: str
+
+
+@dataclass
 class EmbeddedChunk:
     text: str
     vector: list[float]

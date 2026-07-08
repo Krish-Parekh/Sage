@@ -1,10 +1,14 @@
+import json
+
 import logfire
 from langchain_core.messages import AIMessage
+from langchain_openai import ChatOpenAI
+from langgraph.runtime import Runtime
 from pydantic import BaseModel, Field
 
 from src.config import settings
 from src.services.graph.prompts import PLANNER_PROMPT, RESPONDER_PROMPT
-from src.services.graph.state import RAGState, Route
+from src.services.graph.state import RAGState, Route, UserContext
 from src.services.guardrails import Guardrails
 from src.services.llm import LLMClient
 from src.services.retrieval.retriever import Retriever
@@ -36,18 +40,26 @@ class RAGNodes:
     ) -> None:
         self._guardrails = guardrails
         self._retriever = retriever
-        llm = LLMClient.create(model or settings.PORTKEY_GUARDRAILS_MODEL)
-        self._planner = PLANNER_PROMPT | llm.with_structured_output(Plan)
-        self._responder = RESPONDER_PROMPT | llm
+        self._model_name = model or settings.PORTKEY_GUARDRAILS_MODEL
+
+    def _build_llm(self, user: UserContext) -> ChatOpenAI:
+        meta = {"_user": user.user_id, "username": user.username}
+        return LLMClient.create(
+            self._model_name,
+            default_headers={"x-portkey-metadata": json.dumps(meta)},
+        )
 
     def guard(self, state: RAGState) -> dict:
         with logfire.span("Node: guard"):
             fired, response = self._guardrails.guard(state["query"])
             return {"guard_fired": fired, "guard_response": response}
 
-    def planner(self, state: RAGState) -> dict:
+    def planner(self, state: RAGState, runtime: Runtime[UserContext]) -> dict:
         with logfire.span("Node: planner"):
-            plan: Plan = self._planner.invoke({"messages": state["messages"]})
+            chain = PLANNER_PROMPT | self._build_llm(
+                runtime.context
+            ).with_structured_output(Plan)
+            plan: Plan = chain.invoke({"messages": state["messages"]})
             logfire.info(f"Planned route={plan.route} query={plan.search_query!r}")
             return {"route": plan.route, "search_query": plan.search_query}
 
@@ -56,11 +68,12 @@ class RAGNodes:
             chunks = self._retriever.retrieve(state["search_query"])
             return {"chunks": chunks}
 
-    def responder(self, state: RAGState) -> dict:
+    def responder(self, state: RAGState, runtime: Runtime[UserContext]) -> dict:
         with logfire.span("Node: responder"):
             chunks = state.get("chunks") or []
             context = "\n\n".join(f"[{c.source}] {c.text}" for c in chunks)
-            answer = self._responder.invoke(
+            chain = RESPONDER_PROMPT | self._build_llm(runtime.context)
+            answer = chain.invoke(
                 {
                     "context": context or "(no retrieved context)",
                     "messages": state["messages"],

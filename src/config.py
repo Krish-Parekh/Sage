@@ -1,6 +1,7 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
@@ -21,6 +22,8 @@ class Settings(BaseSettings):
     PORTKEY_GUARDRAILS_MODEL: str = os.getenv("PORTKEY_GUARDRAILS_MODEL")
 
     DATABASE_URL: str = os.getenv("DATABASE_URL")
+
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

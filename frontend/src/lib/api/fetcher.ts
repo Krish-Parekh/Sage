@@ -1,28 +1,47 @@
+import { createClient } from "@/lib/supabase/client";
 import { API_BASE_URL } from "./config";
 
 export interface FetcherOptions extends RequestInit {
 	error?: string;
 }
 
+const supabase = createClient();
+
+async function getAuthToken() {
+	const {
+		data: { session },
+	} = await supabase.auth.getSession();
+
+	return session?.access_token;
+}
+
 export async function fetcher<T>(
 	path: string,
 	options: FetcherOptions = {},
 ): Promise<T> {
-	const { error, ...init } = options;
+	const { error, headers, ...init } = options;
+
 	try {
+		const token = await getAuthToken();
+
 		const res = await fetch(`${API_BASE_URL}${path}`, {
 			...init,
-			headers: { "Content-Type": "application/json", ...init.headers },
+			headers: {
+				"Content-Type": "application/json",
+				...(token && {
+					Authorization: `Bearer ${token}`,
+				}),
+				...headers,
+			},
 		});
 
 		if (!res.ok) {
 			throw new Error(error ?? `API responded with ${res.status}`);
 		}
 
-		return (await res.json()) as T;
-	} catch (e) {
-		if (e instanceof Error) throw e;
-		throw new Error(error ?? "Request failed");
+		return res.json();
+	} catch (err) {
+		throw err instanceof Error ? err : new Error(error ?? "Request failed");
 	}
 }
 

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated, Literal, TypedDict
 
 from langchain_core.messages import BaseMessage
@@ -17,3 +18,9 @@ class RAGState(TypedDict, total=False):
     route: Route
     chunks: list[RetrievedChunk]
     answer: str
+
+
+@dataclass
+class UserContext:
+    user_id: str
+    username: str

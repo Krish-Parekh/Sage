@@ -7,7 +7,7 @@ from src.services.graph.nodes import (
     route_after_guard,
     route_after_planner,
 )
-from src.services.graph.state import RAGState
+from src.services.graph.state import RAGState, UserContext
 from src.services.guardrails import Guardrails
 from src.services.retrieval.retriever import Retriever
 
@@ -18,7 +18,7 @@ def build_graph(
 ) -> CompiledStateGraph:
     nodes = RAGNodes(guardrails, retriever)
 
-    builder = StateGraph(RAGState)
+    builder = StateGraph(RAGState, context_schema=UserContext)
     builder.add_node("guard", nodes.guard)
     builder.add_node("planner", nodes.planner)
     builder.add_node("retriever", nodes.retriever)
