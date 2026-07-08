@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
+import {
+	MessageScroller,
+	MessageScrollerButton,
+	MessageScrollerContent,
+	MessageScrollerItem,
+	MessageScrollerProvider,
+	MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 
 import { ChatMessage } from "./chat-message";
@@ -19,29 +25,28 @@ function EmptyState() {
 }
 
 export function MessageList({ messages }: { messages: ChatMessageType[] }) {
-	const viewportRef = useRef<HTMLDivElement>(null);
-
-	// Keep the newest message in view as the conversation grows.
-	useEffect(() => {
-		const viewport = viewportRef.current;
-		if (!viewport || messages.length === 0) return;
-		viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
-	}, [messages]);
-
 	return (
-		<div
-			ref={viewportRef}
-			className="scroll-fade no-scrollbar min-h-0 flex-1 overflow-y-auto"
-		>
+		<MessageScrollerProvider scrollPreviousItemPeek={64}>
 			{messages.length === 0 ? (
 				<EmptyState />
 			) : (
-				<div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6">
-					{messages.map((message) => (
-						<ChatMessage key={message.id} message={message} />
-					))}
-				</div>
+				<MessageScroller className="min-h-0 flex-1">
+					<MessageScrollerViewport>
+						<MessageScrollerContent className="mx-auto w-full max-w-3xl gap-5 px-4 py-6">
+							{messages.map((message) => (
+								<MessageScrollerItem
+									key={message.id}
+									messageId={message.id}
+									scrollAnchor={message.role === "user"}
+								>
+									<ChatMessage message={message} />
+								</MessageScrollerItem>
+							))}
+						</MessageScrollerContent>
+					</MessageScrollerViewport>
+					<MessageScrollerButton />
+				</MessageScroller>
 			)}
-		</div>
+		</MessageScrollerProvider>
 	);
 }
