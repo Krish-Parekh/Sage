@@ -16,6 +16,35 @@ from src.services.retrieval.vector_store import QdrantStore
 Observability.configure()
 
 
+def _patch_otel_included_router() -> None:
+    """Work around a bug in opentelemetry-instrumentation-fastapi 0.63b1.
+
+    Its ``_get_route_details`` reads ``route.path`` unguarded on a PARTIAL
+    match. With Starlette 1.3, routes mounted via ``include_router`` surface as
+    ``_IncludedRouter`` objects that have no ``.path``, so CORS preflight
+    ``OPTIONS`` requests raise ``AttributeError`` and return 500 — which the
+    browser sees as a failed request. We wrap the function to fall back to the
+    raw request path instead of crashing.
+    """
+    try:
+        from opentelemetry.instrumentation import fastapi as otel_fastapi
+    except ImportError:
+        return
+
+    original = otel_fastapi._get_route_details
+
+    def safe_get_route_details(scope):
+        try:
+            return original(scope)
+        except AttributeError:
+            return scope.get("path")
+
+    otel_fastapi._get_route_details = safe_get_route_details
+
+
+_patch_otel_included_router()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     retriever = Retriever(
