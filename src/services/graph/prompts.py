@@ -21,6 +21,18 @@ _RESPONDER_SYSTEM = (
     "Retrieved context:\n{context}"
 )
 
+_TITLE_SYSTEM = (
+    "You generate short sidebar titles for chat conversations, like ChatGPT "
+    "does. Given the user's first message, reply with a title that is 3 to 5 "
+    "words in Title Case, names the topic or task (do NOT answer the message), "
+    "and is in the same language as the message. No quotes, no punctuation.\n\n"
+    "Examples:\n"
+    "how do kubernetes jobs work and when do they restart → "
+    "Kubernetes Job Restart Behavior\n"
+    "hey can you help me fix a crashloopbackoff → Fixing CrashLoopBackOff Errors\n"
+    "whats the capital of france → Capital Of France"
+)
+
 PLANNER_PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", _PLANNER_SYSTEM),
@@ -32,5 +44,12 @@ RESPONDER_PROMPT = ChatPromptTemplate.from_messages(
     [
         ("system", _RESPONDER_SYSTEM),
         MessagesPlaceholder("messages"),
+    ]
+)
+
+TITLE_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", _TITLE_SYSTEM),
+        ("human", "{message}"),
     ]
 )

@@ -1,3 +1,4 @@
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -15,6 +16,7 @@ from src.services.retrieval.retriever import Retriever
 def build_graph(
     guardrails: Guardrails,
     retriever: Retriever,
+    checkpointer: BaseCheckpointSaver | None = None,
 ) -> CompiledStateGraph:
     nodes = RAGNodes(guardrails, retriever)
 
@@ -36,4 +38,4 @@ def build_graph(
     builder.add_edge("retriever", "responder")
     builder.add_edge("responder", END)
 
-    return builder.compile(checkpointer=InMemorySaver())
+    return builder.compile(checkpointer=checkpointer or InMemorySaver())

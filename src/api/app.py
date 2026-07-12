@@ -4,7 +4,8 @@ import logfire
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routers import health_router, query_router
+from src.api.routers import conversations_router, health_router, query_router
+from src.db.checkpointer import build_checkpointer
 from src.observability import Observability
 from src.services.graph import build_graph
 from src.services.guardrails import Guardrails
@@ -17,15 +18,6 @@ Observability.configure()
 
 
 def _patch_otel_included_router() -> None:
-    """Work around a bug in opentelemetry-instrumentation-fastapi 0.63b1.
-
-    Its ``_get_route_details`` reads ``route.path`` unguarded on a PARTIAL
-    match. With Starlette 1.3, routes mounted via ``include_router`` surface as
-    ``_IncludedRouter`` objects that have no ``.path``, so CORS preflight
-    ``OPTIONS`` requests raise ``AttributeError`` and return 500 — which the
-    browser sees as a failed request. We wrap the function to fall back to the
-    raw request path instead of crashing.
-    """
     try:
         from opentelemetry.instrumentation import fastapi as otel_fastapi
     except ImportError:
@@ -53,8 +45,12 @@ async def lifespan(app: FastAPI):
         reranker=CrossEncoderReranker(),
     )
     guardrails = Guardrails()
-    app.state.graph = build_graph(guardrails, retriever)
-    yield
+    checkpointer, pool = build_checkpointer()
+    app.state.graph = build_graph(guardrails, retriever, checkpointer)
+    try:
+        yield
+    finally:
+        pool.close()
 
 
 app = FastAPI(title="Enterprise RAG", lifespan=lifespan)
@@ -69,3 +65,4 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(query_router)
+app.include_router(conversations_router)

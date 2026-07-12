@@ -1,11 +1,15 @@
 import logfire
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from langchain_core.messages import HumanMessage
+from sqlalchemy.orm import Session
 
 from src.api.dependencies import get_current_user
+from src.db.session import get_db
 from src.models import AuthUser
 from src.models.api import Chunk, QueryRequest, QueryResponse
 from src.services.graph.state import UserContext
+from src.services.history import ConversationRepository
+from src.services.history.titles import store_title
 
 router = APIRouter()
 
@@ -14,7 +18,9 @@ router = APIRouter()
 def query(
     body: QueryRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> QueryResponse:
     with logfire.span(
         "POST /query",
@@ -37,6 +43,16 @@ def query(
         span.set_attribute("guard_fired", bool(state.get("guard_fired")))
         span.set_attribute("route", state.get("route") or "")
         span.set_attribute("chunk_count", len(chunks))
+
+        created = ConversationRepository(db).append_turn(
+            user_id=user.id,
+            thread_id=body.thread_id,
+            user_text=body.query,
+            assistant_text=answer,
+        )
+        if created:
+            background_tasks.add_task(store_title, body.thread_id, body.query)
+
         return QueryResponse(
             answer=answer,
             results=[
