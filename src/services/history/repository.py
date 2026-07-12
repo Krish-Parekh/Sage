@@ -40,6 +40,25 @@ class ConversationRepository:
             self._db.commit()
             return created
 
+    def messages_for_title(
+        self, thread_id: str, limit: int = 5
+    ) -> list[Message] | None:
+        conversation = self._db.scalar(
+            select(Conversation).where(Conversation.thread_id == thread_id)
+        )
+        if conversation is None or conversation.title is not None:
+            return None
+
+        messages = list(
+            self._db.scalars(
+                select(Message)
+                .where(Message.conversation_id == conversation.id)
+                .order_by(Message.id)
+                .limit(limit)
+            )
+        )
+        return messages or None
+
     def set_title(self, thread_id: str, title: str) -> None:
         conversation = self._db.scalar(
             select(Conversation).where(Conversation.thread_id == thread_id)

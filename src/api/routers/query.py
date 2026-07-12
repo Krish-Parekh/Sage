@@ -44,14 +44,13 @@ def query(
         span.set_attribute("route", state.get("route") or "")
         span.set_attribute("chunk_count", len(chunks))
 
-        created = ConversationRepository(db).append_turn(
+        ConversationRepository(db).append_turn(
             user_id=user.id,
             thread_id=body.thread_id,
             user_text=body.query,
             assistant_text=answer,
         )
-        if created:
-            background_tasks.add_task(store_title, body.thread_id, body.query)
+        background_tasks.add_task(store_title, body.thread_id)
 
         return QueryResponse(
             answer=answer,
