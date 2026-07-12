@@ -1,3 +1,4 @@
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createCollection } from "@tanstack/react-db";
 
 import { getFetcher } from "@/lib/api/fetcher";
@@ -31,6 +32,7 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 			const seen = new Set<string>();
 			let ready = false;
 			const buffer: Event[] = [];
+			let channel: RealtimeChannel | null = null;
 
 			const apply = (evt: Event) => {
 				const key = evt.row.thread_id;
@@ -47,24 +49,32 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 				commit();
 			};
 
-			// Subscribe BEFORE the initial fetch so events during load aren't lost.
-			const channel = supabase
-				.channel("conversations")
-				.on(
-					"postgres_changes",
-					{ event: "*", schema: "public", table: "conversations" },
-					(payload) => {
-						const type = payload.eventType.toLowerCase() as Event["type"];
-						const record = type === "delete" ? payload.old : payload.new;
-						const evt = { type, row: toRow(record as Record<string, unknown>) };
-						if (ready) apply(evt);
-						else buffer.push(evt);
-					},
-				)
-				.subscribe();
+			const start = async () => {
+				const {
+					data: { session },
+				} = await supabase.auth.getSession();
+				if (session) supabase.realtime.setAuth(session.access_token);
 
-			getFetcher<ConversationSummary[]>("/conversations")
-				.then((rows) => {
+				channel = supabase
+					.channel("conversations")
+					.on(
+						"postgres_changes",
+						{ event: "*", schema: "public", table: "conversations" },
+						(payload) => {
+							const type = payload.eventType.toLowerCase() as Event["type"];
+							const record = type === "delete" ? payload.old : payload.new;
+							const evt = {
+								type,
+								row: toRow(record as Record<string, unknown>),
+							};
+							if (ready) apply(evt);
+							else buffer.push(evt);
+						},
+					)
+					.subscribe();
+
+				try {
+					const rows = await getFetcher<ConversationSummary[]>("/conversations");
 					begin();
 					for (const row of rows) {
 						write({ type: "insert", value: row });
@@ -75,11 +85,22 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 					ready = true;
 					for (const evt of buffer) apply(evt);
 					buffer.length = 0;
-				})
-				.catch(() => markReady());
+				} catch {
+					markReady();
+				}
+			};
+
+			const { data: authSub } = supabase.auth.onAuthStateChange(
+				(_event, session) => {
+					if (session) supabase.realtime.setAuth(session.access_token);
+				},
+			);
+
+			void start();
 
 			return () => {
-				supabase.removeChannel(channel);
+				authSub.subscription.unsubscribe();
+				if (channel) supabase.removeChannel(channel);
 			};
 		},
 	},
