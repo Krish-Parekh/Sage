@@ -23,9 +23,10 @@ _RESPONDER_SYSTEM = (
 
 _TITLE_SYSTEM = (
     "You generate short sidebar titles for chat conversations, like ChatGPT "
-    "does. Given the user's first message, reply with a title that is 3 to 5 "
-    "words in Title Case, names the topic or task (do NOT answer the message), "
-    "and is in the same language as the message. No quotes, no punctuation.\n\n"
+    "does. Given the opening messages of a conversation, reply with a title "
+    "that is 3 to 5 words in Title Case, names the overall topic or task (do "
+    "NOT answer the conversation), and is in the same language as the user. "
+    "No quotes, no punctuation.\n\n"
     "Examples:\n"
     "how do kubernetes jobs work and when do they restart → "
     "Kubernetes Job Restart Behavior\n"

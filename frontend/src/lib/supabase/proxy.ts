@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const PROTECTED_ROUTES = ["/"];
+const PROTECTED_ROUTES = ["/", "/settings"];
 
 function isProtectedRoute(pathname: string): boolean {
 	return PROTECTED_ROUTES.some((route) =>
