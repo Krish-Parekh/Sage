@@ -1,14 +1,21 @@
 "use client";
 
-import { Logout01Icon, UnfoldMoreIcon } from "@hugeicons/core-free-icons";
+import {
+	Logout01Icon,
+	Settings01Icon,
+	UnfoldMoreIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { UserAvatar } from "@/components/settings/user-avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -18,7 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { createClient } from "@/lib/supabase/client";
 
-type User = { name: string; email: string };
+type User = { id: string; name: string; email: string };
 
 export function NavUser() {
 	const router = useRouter();
@@ -30,6 +37,7 @@ export function NavUser() {
 			const u = data.user;
 			if (!u) return;
 			setUser({
+				id: u.id,
 				name: (u.user_metadata?.username as string) ?? u.email ?? "User",
 				email: u.email ?? "",
 			});
@@ -43,8 +51,6 @@ export function NavUser() {
 		router.refresh();
 	}
 
-	const initial = (user?.name ?? "?").charAt(0).toUpperCase();
-
 	return (
 		<SidebarMenu>
 			<SidebarMenuItem>
@@ -57,9 +63,7 @@ export function NavUser() {
 							/>
 						}
 					>
-						<span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sm font-medium text-sidebar-primary-foreground">
-							{initial}
-						</span>
+						<UserAvatar avatarId={user?.id} name={user?.name} />
 						<span className="flex min-w-0 flex-1 flex-col text-left leading-tight">
 							<span className="truncate text-sm font-medium">
 								{user?.name ?? "…"}
@@ -74,6 +78,11 @@ export function NavUser() {
 						/>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent side="top" align="start" className="w-56">
+						<DropdownMenuItem render={<Link href="/settings" />}>
+							<HugeiconsIcon icon={Settings01Icon} className="size-4" />
+							Profile
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
 						<DropdownMenuItem onClick={handleLogout}>
 							<HugeiconsIcon icon={Logout01Icon} className="size-4" />
 							Log out
