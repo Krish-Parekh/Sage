@@ -1,11 +1,12 @@
-import { ChatPanel } from "@/components/chat/chat-panel";
-import { Navbar } from "@/components/layout/navbar";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const ChatShell = dynamic(
+	() => import("@/components/chat/chat-shell").then((m) => m.ChatShell),
+	{ ssr: false },
+);
 
 export default function Home() {
-	return (
-		<div className="flex h-screen flex-col">
-			<Navbar />
-			<ChatPanel />
-		</div>
-	);
+	return <ChatShell />;
 }
