@@ -47,7 +47,7 @@ def query(
         ConversationRepository(db).append_turn(
             user_id=user.id,
             thread_id=body.thread_id,
-            user_text=body.query,
+            user_text=state.get("query") or body.query,
             assistant_text=answer,
         )
         background_tasks.add_task(store_title, body.thread_id)

@@ -13,7 +13,10 @@ TITLE_MESSAGE_COUNT = 5
 def generate_title(messages: list[Message]) -> str:
     transcript = "\n".join(f"{m.role}: {m.content}" for m in messages)
     llm = LLMClient.create(
-        settings.PORTKEY_GUARDRAILS_MODEL, temperature=0, max_tokens=20
+        settings.PORTKEY_GUARDRAILS_MODEL,
+        metadata={"_task": "title-generation"},
+        temperature=0,
+        max_tokens=20,
     )
     chain = TITLE_PROMPT | llm
     title = chain.invoke({"message": transcript[:2000]}).content

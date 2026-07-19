@@ -1,7 +1,5 @@
-import json
-
 import logfire
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.runtime import Runtime
 from pydantic import BaseModel, Field
@@ -36,30 +34,38 @@ class RAGNodes:
         self,
         guardrails: Guardrails,
         retriever: Retriever,
-        model: str | None = None,
     ) -> None:
         self._guardrails = guardrails
         self._retriever = retriever
-        self._model_name = model or settings.PORTKEY_GUARDRAILS_MODEL
 
-    def _build_llm(self, user: UserContext) -> ChatOpenAI:
-        meta = {"_user": user.user_id, "username": user.username}
+    def _build_llm(self, user: UserContext, model: str) -> ChatOpenAI:
         return LLMClient.create(
-            self._model_name,
-            default_headers={"x-portkey-metadata": json.dumps(meta)},
+            model,
+            metadata={"_user": user.user_id, "username": user.username},
+            trace_id=user.user_id,
         )
 
     def guard(self, state: RAGState) -> dict:
         with logfire.span("Node: guard"):
-            fired, response = self._guardrails.guard(state["query"])
-            return {"guard_fired": fired, "guard_response": response}
+            fired, response, masked = self._guardrails.guard(state["query"])
+            update: dict = {
+                "guard_fired": fired,
+                "guard_response": response,
+                "answer": "",
+                "chunks": [],
+            }
+            if not fired and masked != state["query"]:
+                last = state["messages"][-1]
+                update["query"] = masked
+                update["messages"] = [HumanMessage(content=masked, id=last.id)]
+            return update
 
     def planner(self, state: RAGState, runtime: Runtime[UserContext]) -> dict:
         with logfire.span("Node: planner"):
             chain = PLANNER_PROMPT | self._build_llm(
-                runtime.context
+                runtime.context, settings.PORTKEY_GUARDRAILS_MODEL
             ).with_structured_output(Plan)
-            plan: Plan = chain.invoke({"messages": state["messages"]})
+            plan: Plan = chain.invoke({"messages": state["messages"][-4:]})
             logfire.info(f"Planned route={plan.route} query={plan.search_query!r}")
             return {"route": plan.route, "search_query": plan.search_query}
 
@@ -72,7 +78,9 @@ class RAGNodes:
         with logfire.span("Node: responder"):
             chunks = state.get("chunks") or []
             context = "\n\n".join(f"[{c.source}] {c.text}" for c in chunks)
-            chain = RESPONDER_PROMPT | self._build_llm(runtime.context)
+            chain = RESPONDER_PROMPT | self._build_llm(
+                runtime.context, settings.PORTKEY_RESPONDER_MODEL
+            )
             answer = chain.invoke(
                 {
                     "context": context or "(no retrieved context)",

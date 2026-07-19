@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     PORT_API_KEY: str = os.getenv("PORT_API_KEY")
     PORTKEY_BASE_URL: str = os.getenv("PORTKEY_BASE_URL")
     PORTKEY_GUARDRAILS_MODEL: str = os.getenv("PORTKEY_GUARDRAILS_MODEL")
+    PORTKEY_RESPONDER_MODEL: str = os.getenv("PORTKEY_RESPONDER_MODEL")
+    PORTKEY_CONFIG: str | None = os.getenv("PORTKEY_CONFIG")
 
     DATABASE_URL: str = os.getenv("DATABASE_URL")
 
