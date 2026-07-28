@@ -2,6 +2,8 @@
 
 import { Loading03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import Image from "next/image";
+import type { ReactNode } from "react";
 
 export const autofillBlock = {
 	autoComplete: "off" as const,
@@ -10,6 +12,27 @@ export const autofillBlock = {
 	"data-bwignore": true,
 	"data-form-type": "other",
 };
+
+export function AuthShell({ children }: { children: ReactNode }) {
+	return (
+		<div className="flex min-h-screen w-full">
+			<div className="relative hidden overflow-hidden bg-muted lg:block lg:w-1/2">
+				<Image
+					src="/login.png"
+					alt=""
+					fill
+					priority
+					sizes="50vw"
+					className="object-cover object-center"
+				/>
+			</div>
+
+			<div className="flex w-full items-center justify-center bg-card p-6 lg:w-1/2">
+				<div className="w-full max-w-sm">{children}</div>
+			</div>
+		</div>
+	);
+}
 
 export function AuthHeader({
 	title,

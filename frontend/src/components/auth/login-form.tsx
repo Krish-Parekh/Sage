@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 
@@ -21,7 +22,13 @@ import { SmoothInput } from "@/components/ui/smooth-input";
 import { type LoginValues, loginSchema } from "@/lib/auth/schema";
 import { createClient } from "@/lib/supabase/client";
 
-export function LoginForm({ onSwitch }: { onSwitch: () => void }) {
+export function LoginForm({
+	onSwitch,
+	error,
+}: {
+	onSwitch: () => void;
+	error?: string;
+}) {
 	const router = useRouter();
 	const form = useForm<LoginValues>({
 		resolver: zodResolver(loginSchema),
@@ -99,9 +106,18 @@ export function LoginForm({ onSwitch }: { onSwitch: () => void }) {
 					/>
 				</FieldGroup>
 
-				{errors.root && (
+				<div className="text-right">
+					<Link
+						href="/forgot-password"
+						className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+					>
+						Forgot password?
+					</Link>
+				</div>
+
+				{(errors.root || error) && (
 					<p aria-live="polite" className="text-sm text-destructive">
-						{errors.root.message}
+						{errors.root?.message ?? error}
 					</p>
 				)}
 
