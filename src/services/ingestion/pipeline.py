@@ -2,9 +2,9 @@ import time
 
 import logfire
 
+from src.models import EmbeddedChunk
 from src.services.ingestion.chunking import Chunker
 from src.services.ingestion.processor import DocumentProcessor
-from src.models import EmbeddedChunk
 from src.services.retrieval.embeddings import Embedder
 from src.services.retrieval.vector_store import VectorStore
 
@@ -22,8 +22,11 @@ class IngestionPipeline:
         self._embedder = embedder
         self._store = store
 
-    def ingest(self, file_path: str) -> list[EmbeddedChunk]:
-        with logfire.span("Ingestion Pipeline", filename=file_path):
+    def ingest(
+        self, file_path: str, *, source: str | None = None
+    ) -> list[EmbeddedChunk]:
+        source_label = source or file_path
+        with logfire.span("Ingestion Pipeline", filename=file_path, source=source_label):
             start = time.perf_counter()
 
             text = self._processor.parse(file_path)
@@ -36,7 +39,7 @@ class IngestionPipeline:
             vectors = self._embedder.embed(chunks)
 
             embedded = [
-                EmbeddedChunk(text=chunk, vector=vector, source=file_path)
+                EmbeddedChunk(text=chunk, vector=vector, source=source_label)
                 for chunk, vector in zip(chunks, vectors, strict=True)
             ]
 
@@ -44,7 +47,7 @@ class IngestionPipeline:
 
             elapsed = time.perf_counter() - start
             logfire.info(
-                f"Ingested {len(embedded)} chunks from {file_path} in {elapsed:.2f}s"
+                f"Ingested {len(embedded)} chunks from {source_label} in {elapsed:.2f}s"
             )
 
             return embedded
