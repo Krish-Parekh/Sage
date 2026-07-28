@@ -87,3 +87,19 @@ class ConversationRepository:
             )
             .options(selectinload(Conversation.messages))
         )
+
+    def delete_conversation(
+        self, user_id: uuid.UUID | str, thread_id: str
+    ) -> bool:
+        with logfire.span("history.delete_conversation", thread_id=thread_id):
+            conversation = self._db.scalar(
+                select(Conversation).where(
+                    Conversation.thread_id == thread_id,
+                    Conversation.user_id == user_id,
+                )
+            )
+            if conversation is None:
+                return False
+            self._db.delete(conversation)
+            self._db.commit()
+            return True

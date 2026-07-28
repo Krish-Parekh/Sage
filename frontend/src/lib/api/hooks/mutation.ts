@@ -1,6 +1,11 @@
 import { type UseMutationOptions, useMutation } from "@tanstack/react-query";
 
-import { type FetcherOptions, patchFetcher, postFetcher } from "../fetcher";
+import {
+	deleteFetcher,
+	type FetcherOptions,
+	patchFetcher,
+	postFetcher,
+} from "../fetcher";
 
 type MutationOptions<TData, TBody> = Omit<
 	UseMutationOptions<TData, Error, TBody>,
@@ -27,6 +32,16 @@ export function usePatch<TData, TBody = unknown>(
 	const { fetcherOptions, ...mutationOptions } = options ?? {};
 	return useMutation<TData, Error, TBody>({
 		mutationFn: (body) => patchFetcher<TData>(path, body, fetcherOptions),
+		...mutationOptions,
+	});
+}
+
+export function useDelete<TData = void>(
+	options?: MutationOptions<TData, string>,
+) {
+	const { fetcherOptions, ...mutationOptions } = options ?? {};
+	return useMutation<TData, Error, string>({
+		mutationFn: (path) => deleteFetcher<TData>(path, fetcherOptions),
 		...mutationOptions,
 	});
 }

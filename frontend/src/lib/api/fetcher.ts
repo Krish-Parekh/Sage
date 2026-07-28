@@ -39,7 +39,16 @@ export async function fetcher<T>(
 			throw new Error(error ?? `API responded with ${res.status}`);
 		}
 
-		return res.json();
+		if (res.status === 204) {
+			return undefined as T;
+		}
+
+		const text = await res.text();
+		if (!text) {
+			return undefined as T;
+		}
+
+		return JSON.parse(text) as T;
 	} catch (err) {
 		throw err instanceof Error ? err : new Error(error ?? "Request failed");
 	}
@@ -74,4 +83,11 @@ export function patchFetcher<T>(
 		method: "PATCH",
 		body: JSON.stringify(body),
 	});
+}
+
+export function deleteFetcher<T = void>(
+	path: string,
+	options?: FetcherOptions,
+): Promise<T> {
+	return fetcher<T>(path, { ...options, method: "DELETE" });
 }

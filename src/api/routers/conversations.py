@@ -35,3 +35,18 @@ def get_conversation(
                 detail="Conversation not found",
             )
         return ConversationDetail.model_validate(conversation)
+
+
+@router.delete("/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_conversation(
+    thread_id: str,
+    user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    with logfire.span("DELETE /conversations/{thread_id}", thread_id=thread_id):
+        deleted = ConversationRepository(db).delete_conversation(user.id, thread_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Conversation not found",
+            )

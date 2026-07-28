@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createCollection } from "@tanstack/react-db";
 
-import { getFetcher } from "@/lib/api/fetcher";
+import { deleteFetcher, getFetcher } from "@/lib/api/fetcher";
 import { createClient } from "@/lib/supabase/client";
 import type { ConversationSummary } from "@/types/api";
 
@@ -23,9 +23,26 @@ function toRow(record: Record<string, unknown>): Row {
 	};
 }
 
+// Authoritatively drops a row from the synced state. Captured from the sync
+// closure so `onDelete` can remove a conversation as soon as the backend
+// confirms, instead of relying on the (unreliable for RLS-protected DELETEs)
+// Supabase Realtime event to eventually catch up.
+let removeFromSync: (threadId: string) => void = () => {};
+
 export const conversationsCollection = createCollection<ConversationSummary>({
 	id: "conversations",
 	getKey: (c) => c.thread_id,
+	onDelete: async ({ transaction }) => {
+		await Promise.all(
+			transaction.mutations.map(async (m) => {
+				const key = String(m.key);
+				await deleteFetcher(`/conversations/${key}`, {
+					error: "Failed to delete conversation",
+				});
+				removeFromSync(key);
+			}),
+		);
+	},
 	sync: {
 		sync: ({ begin, write, commit, markReady }) => {
 			const supabase = createClient();
@@ -47,6 +64,22 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 					seen.add(key);
 				}
 				commit();
+			};
+
+			removeFromSync = (threadId: string) => {
+				if (!seen.has(threadId)) return;
+				begin();
+				write({
+					type: "delete",
+					value: {
+						thread_id: threadId,
+						title: null,
+						created_at: "",
+						updated_at: "",
+					},
+				});
+				commit();
+				seen.delete(threadId);
 			};
 
 			const start = async () => {
@@ -99,6 +132,7 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 			void start();
 
 			return () => {
+				removeFromSync = () => {};
 				authSub.subscription.unsubscribe();
 				if (channel) supabase.removeChannel(channel);
 			};

@@ -22,7 +22,9 @@ type Props = {
 export function ChatPanel({ threadId, load }: Props) {
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const idCounter = useRef(0);
-	const { mutate, isPending } = usePost<QueryResponse, QueryRequest>("/query");
+	const { mutate, isPending } = usePost<QueryResponse, QueryRequest>("/query", {
+		mutationKey: ["query", threadId],
+	});
 
 	const { data: history } = useGet<ConversationDetail>(
 		`/conversations/${threadId}`,
