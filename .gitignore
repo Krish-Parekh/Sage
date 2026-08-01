@@ -15,7 +15,9 @@ chroma_langchain_db/
 # Environment variables
 .env
 CLAUDE.md
-docs/
+# planning notes stay local, but the README's diagrams have to ship
+docs/*
+!docs/architecture/
 
 langfuse/
 
