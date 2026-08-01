@@ -68,6 +68,7 @@ def run(
     recreate: bool,
     collection: str | None,
     delay: float,
+    skip_existing: bool = False,
 ) -> None:
     Observability.configure()
     pipeline, store = build_pipeline(collection)
@@ -79,6 +80,15 @@ def run(
     store.ensure_collection()
 
     files = _expand(paths)
+
+    if skip_existing:
+        existing = store.sources()
+        keep = [p for p in files if _source_label(p) not in existing]
+        for path in files:
+            if path not in keep:
+                logfire.info(f"Skipping already-ingested {_source_label(path)}")
+        files = keep
+
     logfire.info(f"Ingesting {len(files)} files (delay={delay}s between files)")
 
     totals = {"files": 0, "chunks": 0, "failed": 0}
@@ -121,6 +131,11 @@ def main(argv: list[str] | None = None) -> None:
         help="Delete and recreate the collection before ingesting",
     )
     parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip files whose source is already in the collection (matches on filename, so edits are not re-ingested)",
+    )
+    parser.add_argument(
         "--delay",
         type=float,
         default=2.0,
@@ -132,6 +147,7 @@ def main(argv: list[str] | None = None) -> None:
         recreate=args.recreate,
         collection=args.collection,
         delay=args.delay,
+        skip_existing=args.skip_existing,
     )
 
 

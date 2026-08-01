@@ -53,6 +53,27 @@ class QdrantStore:
         self._client.delete_collection(collection_name=self._collection)
         logfire.info(f"Deleted Qdrant collection '{self._collection}'")
 
+    def sources(self) -> set[str]:
+        """Distinct `source` values already stored in the collection."""
+        if not self._client.collection_exists(self._collection):
+            return set()
+
+        found: set[str] = set()
+        offset = None
+        while True:
+            points, offset = self._client.scroll(
+                collection_name=self._collection,
+                limit=1000,
+                offset=offset,
+                with_payload=["source"],
+                with_vectors=False,
+            )
+            found.update(p.payload["source"] for p in points if p.payload)
+            if offset is None:
+                break
+
+        return found
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=5),
