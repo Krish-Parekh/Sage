@@ -50,6 +50,7 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 			let ready = false;
 			const buffer: Event[] = [];
 			let channel: RealtimeChannel | null = null;
+			let disposed = false;
 
 			const apply = (evt: Event) => {
 				const key = evt.row.thread_id;
@@ -66,7 +67,7 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 				commit();
 			};
 
-			removeFromSync = (threadId: string) => {
+			const remove = (threadId: string) => {
 				if (!seen.has(threadId)) return;
 				begin();
 				write({
@@ -81,15 +82,20 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 				commit();
 				seen.delete(threadId);
 			};
+			removeFromSync = remove;
 
 			const start = async () => {
 				const {
 					data: { session },
 				} = await supabase.auth.getSession();
+				if (disposed) return;
 				if (session) supabase.realtime.setAuth(session.access_token);
 
-				channel = supabase
-					.channel("conversations")
+				// Unique topic per sync run. `createBrowserClient` is a singleton, so
+				// `supabase.channel(topic)` hands back an already-subscribed channel on
+				// remount and `.on()` throws.
+				const local = supabase
+					.channel(`conversations:${crypto.randomUUID()}`)
 					.on(
 						"postgres_changes",
 						{ event: "*", schema: "public", table: "conversations" },
@@ -106,8 +112,17 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 					)
 					.subscribe();
 
+				channel = local;
+				if (disposed) {
+					channel = null;
+					supabase.removeChannel(local);
+					return;
+				}
+
 				try {
-					const rows = await getFetcher<ConversationSummary[]>("/conversations");
+					const rows =
+						await getFetcher<ConversationSummary[]>("/conversations");
+					if (disposed) return;
 					begin();
 					for (const row of rows) {
 						write({ type: "insert", value: row });
@@ -119,7 +134,7 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 					for (const evt of buffer) apply(evt);
 					buffer.length = 0;
 				} catch {
-					markReady();
+					if (!disposed) markReady();
 				}
 			};
 
@@ -132,7 +147,8 @@ export const conversationsCollection = createCollection<ConversationSummary>({
 			void start();
 
 			return () => {
-				removeFromSync = () => {};
+				disposed = true;
+				if (removeFromSync === remove) removeFromSync = () => {};
 				authSub.subscription.unsubscribe();
 				if (channel) supabase.removeChannel(channel);
 			};
