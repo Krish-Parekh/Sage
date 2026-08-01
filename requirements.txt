@@ -57,6 +57,5 @@ prometheus-fastapi-instrumentator  # Automatic FastAPI request metrics
 ruff                           # Fast Python linter and formatter
 
 # --- EVALUATION (EVALS) ---
-ragas                       # RAG-specific evaluation metrics (Faithfulness, Relevancy, Recall)
-deepeval                    # Pytest-compatible test runner wrapping RAGAS & safety metrics
+deepeval                    # RAG evaluation metrics (Faithfulness, Relevancy, Recall) + pytest runner
 langfuse                    # Live production monitoring, tracing & user feedback collection

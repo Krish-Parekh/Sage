@@ -20,3 +20,9 @@ docs/
 langfuse/
 
 .agents/
+
+# Eval run outputs
+evals/context_recall.json
+
+# FastEmbed model cache for NeMo Guardrails intent matching
+.cache/

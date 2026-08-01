@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     PORTKEY_RESPONDER_MODEL: str = os.getenv("PORTKEY_RESPONDER_MODEL")
     PORTKEY_CONFIG: str | None = os.getenv("PORTKEY_CONFIG")
 
+    EVAL_DATASET: str = os.getenv("EVAL_DATASET", "rag-golden")
+    EVAL_JUDGE_MODEL: str = os.getenv("EVAL_JUDGE_MODEL", "gpt-5-mini")
+
     DATABASE_URL: str = os.getenv("DATABASE_URL")
 
     SUPABASE_URL: str = os.getenv("SUPABASE_URL")
