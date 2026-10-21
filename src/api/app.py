@@ -4,7 +4,12 @@ import logfire
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routers import conversations_router, health_router, query_router
+from src.api.routers import (
+    conversations_router,
+    health_router,
+    query_router,
+    version_router,
+)
 from src.db.checkpointer import build_checkpointer
 from src.observability import Observability
 from src.services.graph import build_graph
@@ -64,5 +69,6 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(version_router)
 app.include_router(query_router)
 app.include_router(conversations_router)
